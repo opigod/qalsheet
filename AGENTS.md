@@ -6,11 +6,12 @@ This file is the working guide for anyone (human or agent) changing QalSheet.
 
 QalSheet is a stand-alone Wear OS calculator for round watches. The reference device is the **Xiaomi Watch 2 Pro**: 1.43" AMOLED, 466 × 466 px, ~320 dpi (≈233 dp), round, rotating crown. It is a native Kotlin/Jetpack Compose app — no WebView, no React Native, no network use.
 
-The three tabs are:
+The two tabs are:
 
-1. Calculator (basic arithmetic + history)
+1. Calculator (numeric keypad, `fx` scientific page, history)
 2. Unit converter (8 categories, unit pickers, amount keypad)
-3. Czech chemical nomenclature (oxidation-state adjective + suffix + examples + guide)
+
+The Chemistry tab was intentionally removed in 1.1.0. Do not add a third top-level tab without checking the round-screen tab spacing and product scope.
 
 ## Toolchain
 
@@ -47,31 +48,29 @@ The screen is a circle, not a rounded rectangle. Fixed layouts that look fine in
   - root: 12 dp top, 30 dp tab row, 2 dp gap, 14 dp bottom
   - display and keypad both use an extra 14 dp horizontal margin (20 dp total)
   - 5-column grid; the bottom row is `blank, 0, ., +, blank` on purpose. Do not fill the bottom corners with buttons.
-  - the display header now carries a ~54 dp `123`/`fx` switch, a 30 dp DEG/RAD tag and an optional 20 dp history icon; keep the row to 20 dp and let the expression preview ellipsize
+  - the display header carries a ~54 dp `123`/`fx` switch, a 30 dp DEG/RAD tag and an optional 20 dp history icon; keep the row to 20 dp and let the expression preview ellipsize
 - The `fx` scientific page is also a 5-column, 4-row grid. Its bottom row contains only four centered function keys (`! % ± 1/x`); the top three rows hold 5 keys each. Do not add a sixth column or a fifth row; both would clip at 466 × 466.
 - Changes to key sizes or root padding must be checked on a 466 × 466 / 320 dpi round emulator, not just in Preview.
-- The list pages use `ScalingLazyColumn`. For normal top-to-bottom fixed content, set `autoCentering = null` and disable the fisheye with `ScalingLazyColumnDefaults.scalingParams(edgeScale = 1f, edgeAlpha = 1f, ...)`. Beware: `rememberScalingLazyListState()` defaults to `initialCenterItemIndex = 1`, which starts a list scrolled past its first item. Set `initialCenterItemIndex = 0` for guides; set it to the selected row for pickers.
+- The converter uses a 170 × 98 dp card with a 24 dp corner radius, centered in a vertically centered page. Its category strip is a `LazyRow`; do not move it into the bottom half of the circle.
+- The list pages use `ScalingLazyColumn`. For normal top-to-bottom fixed content, set `autoCentering = null` and disable the fisheye with `ScalingLazyColumnDefaults.scalingParams(edgeScale = 1f, edgeAlpha = 1f, ...)`. Beware: `rememberScalingLazyListState()` defaults to `initialCenterItemIndex = 1`, which starts a list scrolled past its first item. Set `initialCenterItemIndex = 0` for top-of-list dialogs; set it to the selected row for pickers.
 
 ## Architecture
 
 ```
 com.qalsheet
   MainActivity.kt                 ComponentActivity + edge-to-edge
-  QalSheetApp.kt                  root screen, 3-tab Wear pager, hoisted state
+  QalSheetApp.kt                  root screen, 2-tab Wear pager, hoisted state
   ui/QalTheme.kt                  colors, Nunito family, typography, background
   ui/Components.kt                custom Canvas icons, tabs, page switch,
-                                  mode tag, dialog shell, pill, fitted text,
-                                  formula text, suffix badge
+                                  mode tag, dialog shell, pill, fitted text
   calc/CalculatorEngine.kt        pure parser + CalculatorState
   calc/CalculatorPage.kt          calculator UI + history dialog
   convert/Units.kt                MeasureUnit, UnitCategory, conversion data
   convert/ConverterState.kt       category/unit/input state
   convert/ConverterPage.kt        converter, amount keypad, unit picker
-  chem/ChemistryData.kt           curated elements, suffixes, guide content
-  chem/ChemistryPage.kt           nomenclature UI, pickers, guide
 ```
 
-State objects (`CalculatorState`, `ConverterState`, `ChemistryState`) are created in `QalSheetApp` and passed down. This keeps values alive when the pager disposes a neighbour page. Do not move long-lived state back inside a page without checking pager disposal.
+State objects (`CalculatorState`, `ConverterState`) are created in `QalSheetApp` and passed down. This keeps values alive when the pager disposes a neighbour page. Do not move long-lived state back inside a page without checking pager disposal.
 
 ## Design system
 
@@ -80,7 +79,7 @@ Palette (inspired by QuickCalc's fallback dark Material theme):
 - ink `#07060B`, lifted ink `#100C18`
 - card `#17141F`, key `#24212E`, operator `#35304A`
 - violet `#8B5CF6`, soft violet `#C4B5FD`
-- teal `#2DD4BF`, pink `#FF9EC4`, amber `#FBBF24`
+- teal `#2DD4BF`, pink `#FF9EC4`
 - text `#F7F3FF`, muted `#A39BB7`
 
 Rules:
@@ -89,7 +88,7 @@ Rules:
 - Custom components, not phone Material3. Do not add `material-icons-extended` for one icon — draw it in `GlyphIcon` with Compose Canvas.
 - Pills/keys use `RoundedCornerShape(50)` (or 12–22 dp for cards), a 1 dp white-alpha border, press scale and haptic feedback. Ripple is intentionally disabled.
 - Keys: digits `QalType.Button`, operators `QalType.Operator`, equals uses the violet gradient and dark ink text.
-- Text in the UI is English; Czech chemical names and the guide content are Czech. Do not "translate" chemical adjectives.
+- Text in the UI is English.
 
 ## Calculator
 
@@ -105,7 +104,7 @@ Rules:
 
 ### Scientific mode
 
-Scientific functions live in the Calculator tab, not as a fourth top-level tab.
+Scientific functions live in the Calculator tab, not as a third top-level tab.
 
 - The display header contains `QalPageSwitch` (`123` / `fx`) and a `QalModeTag` (`DEG` / `RAD`). Both are always visible.
 - The `fx` page shows 19 full-size function keys:
@@ -148,42 +147,6 @@ Base units: metre, gram, Celsius, litre, m², m/s, second, byte. Temperature is 
 
 When adding a unit, keep the symbol unique inside its category and update `UnitsTest`.
 
-## Czech chemical data
-
-This is the most sensitive content. Data is curated from Czech school nomenclature references (maths.cz's oxidation table, Czech Wikipedia's "České chemické názvosloví", and the naming notes supplied by the project owner). Do not generate adjectives with a suffix rule from the element name; the stems are irregular.
-
-Suffix system:
-
-- I `-ný`
-- II `-natý`
-- III `-itý`
-- IV `-ičitý`
-- V `-ičný` / `-ečný`
-- VI `-ový`
-- VII `-istý`
-- VIII `-ičelý`
-
-`-ečný` applies to `fosforečný`, `chlorečný`, `bismutečný`; other V names use `-ičný` (`dusičný`, `vanadičný`, `arzeničný`, `bromičný`, `jodičný`). The halogen names are irregular: `chlorný`, `chloritý`, `chloričitý`, `chlorečný`, `chloristý`.
-
-Data model:
-
-- `ChemElement(symbol, czech, english, metal, states)`
-- `ChemState(oxidation, adjective, acidName?, acidFormula?)`
-- `ChemData.oxideFormula()` generates M₂Oₙ and reduces by gcd.
-- Hydroxide examples are generated only for metals in states II–III.
-- Acids are explicit; formulas are ASCII digits. The UI's `FormulaText` renders digits as subscripts. Do not put Unicode subscripts in the data.
-- `ChemData.suffixOf()` recognises the eight endings; every adjective in the table must pass the invariant test.
-
-Updating data:
-
-1. Add or edit the element in `ChemistryData.kt`.
-2. Check the Czech adjective against a textbook, not a translator. Watch stems: `vápník → vápenatý`, `železo → železitý`, `měď → měďný/měďnatý`, `bismut → bismutitý/bismutečný`.
-3. Set the `metal` flag correctly (hydroxide generation).
-4. Add acids only when both the Czech acid name and formula are certain.
-5. Run `ChemistryDataTest`; add a specific assertion for any newly introduced irregular form.
-
-The guide content lives in `ChemData.guideSections` and covers binary compounds, hydroxides, acids, salts and a concise IUPAC organic-naming summary. Keep it short enough to scroll on a watch.
-
 ## Testing / QA checklist
 
 Emulator used during development:
@@ -199,17 +162,21 @@ Before shipping a layout change:
 - Calculator: all 18 keys of the numeric page and all 19 function keys of the fx page fully visible on the 466 × 466 round screen; `123`/`fx` switch and DEG/RAD tag fit the 20 dp header; long results shrink/ellipsize; history opens from the clock icon.
 - Scientific mode: DEG/RAD changes trig results; `sin(30)` in DEG is 0.5; applying a function returns to the numeric page; an out-of-domain expression (`asin(2)` or `tan(90)`) shows a red Error; history shows the mode.
 - Converter: all 8 categories reachable, category row scrolls, unit picker selected row centered, amount keypad keys not clipped, sign toggle and swap work.
-- Chemistry: element picker scrolls; a 5-state element (Cl, Br, N, Mn) shows all chips; the adjective card is fully visible; examples scroll into view; Guide starts at the top (not at row II).
 - Round-screen mask: no interactive control in the outer corners.
 - Run `./gradlew :app:testDebugUnitTest :app:assembleDebug`.
 
-Reference screenshots live in `docs/screenshots/`: basic keypad, fx page, RAD state and an error result, plus converter and chemistry.
+Reference screenshots live in `docs/screenshots/`: basic keypad, fx page, RAD state, error result, converter and amount entry.
+
+## Versioning and release
+
+- Current app version: `1.1.0` (`versionCode 2`), with the Chemistry tab removed.
+- Build the APK, then create a GitHub release with the debug-signed APK. Update `versionCode`/`versionName` in `app/build.gradle.kts` for every published build.
+- The GitHub repository is `opigod/qalsheet`; releases use tags such as `v1.1.0`.
+- Keep release notes honest: the APK is debug-signed for sideloading, not a Play Store build. Include a SHA-256 checksum.
 
 ## Known limitations / good next steps
 
 - No ambient/AOD, tile or watch-face complication yet.
 - Calculator history, active keypad page and angle mode are not persisted across process death.
 - No cursor/selection editing: the expression is append/backspace only. The fx page applies functions to the current expression and returns to the numeric page.
-- No formula-to-name parser; the chemistry tool is element + oxidation state plus a reference guide.
-- No Czech UI localization; the naming content is Czech, UI labels are English.
-- Adding a settings screen for haptics/theme would require a fourth tab or a dialog; measure the round safe area first.
+- Adding a settings screen for haptics/theme would require a third tab or a dialog; measure the round safe area first.

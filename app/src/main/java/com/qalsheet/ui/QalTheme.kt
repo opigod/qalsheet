@@ -46,8 +46,6 @@ object QalColors {
     val Teal = Color(0xFF2DD4BF)
     val TealSoft = Color(0xFF99F6E4)
     val Pink = Color(0xFFFF9EC4)
-    val Amber = Color(0xFFFBBF24)
-    val AmberSoft = Color(0xFFFDE68A)
     val Error = Color(0xFFFF6B81)
 }
 

@@ -17,8 +17,6 @@ import androidx.wear.compose.foundation.pager.rememberPagerState
 import androidx.wear.compose.foundation.rotary.RotaryScrollableDefaults
 import com.qalsheet.calc.CalculatorPage
 import com.qalsheet.calc.CalculatorState
-import com.qalsheet.chem.ChemistryPage
-import com.qalsheet.chem.ChemistryState
 import com.qalsheet.convert.ConverterPage
 import com.qalsheet.convert.ConverterState
 import com.qalsheet.ui.QalScreen
@@ -27,12 +25,11 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun QalSheetApp() {
-    val pagerState = rememberPagerState(pageCount = { 3 })
+    val pagerState = rememberPagerState(pageCount = { 2 })
     val scope = rememberCoroutineScope()
 
     val calculatorState = remember { CalculatorState() }
     val converterState = remember { ConverterState() }
-    val chemistryState = remember { ChemistryState() }
 
     QalScreen {
         Column(
@@ -65,10 +62,6 @@ fun QalSheetApp() {
                     )
                     1 -> ConverterPage(
                         state = converterState,
-                        modifier = Modifier.fillMaxSize(),
-                    )
-                    else -> ChemistryPage(
-                        state = chemistryState,
                         modifier = Modifier.fillMaxSize(),
                     )
                 }

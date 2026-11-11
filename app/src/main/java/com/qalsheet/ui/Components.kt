@@ -31,7 +31,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
@@ -45,14 +44,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.BaselineShift
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,7 +58,6 @@ import androidx.wear.compose.foundation.hierarchicalFocusGroup
 enum class Glyph {
     Calculator,
     Convert,
-    Flask,
     History,
     Close,
     Check,
@@ -72,7 +66,7 @@ enum class Glyph {
     Backspace,
 }
 
-private val tabLabels = listOf("Calculator", "Converter", "Chemistry")
+private val tabLabels = listOf("Calculator", "Converter")
 
 @Composable
 fun GlyphIcon(
@@ -117,29 +111,6 @@ fun GlyphIcon(
                 drawLine(tint, Offset(w * 0.83f, h * 0.66f), Offset(w * 0.17f, h * 0.66f), strokeWidth, StrokeCap.Round)
                 drawLine(tint, Offset(w * 0.30f, h * 0.53f), Offset(w * 0.17f, h * 0.66f), strokeWidth, StrokeCap.Round)
                 drawLine(tint, Offset(w * 0.30f, h * 0.79f), Offset(w * 0.17f, h * 0.66f), strokeWidth, StrokeCap.Round)
-            }
-
-            Glyph.Flask -> {
-                val flask = Path().apply {
-                    moveTo(w * 0.41f, h * 0.10f)
-                    lineTo(w * 0.59f, h * 0.10f)
-                    lineTo(w * 0.59f, h * 0.34f)
-                    lineTo(w * 0.83f, h * 0.82f)
-                    quadraticTo(w * 0.87f, h * 0.91f, w * 0.77f, h * 0.91f)
-                    lineTo(w * 0.23f, h * 0.91f)
-                    quadraticTo(w * 0.13f, h * 0.91f, w * 0.17f, h * 0.82f)
-                    lineTo(w * 0.41f, h * 0.34f)
-                    close()
-                }
-                drawPath(flask, color = tint, style = stroke)
-                drawLine(
-                    tint,
-                    Offset(w * 0.29f, h * 0.73f),
-                    Offset(w * 0.71f, h * 0.73f),
-                    strokeWidth * 0.8f,
-                    StrokeCap.Round,
-                )
-                drawCircle(tint, radius = w * 0.035f, center = Offset(w * 0.44f, h * 0.58f))
             }
 
             Glyph.History -> {
@@ -256,11 +227,7 @@ fun QalTabs(
                 contentAlignment = Alignment.Center,
             ) {
                 GlyphIcon(
-                    glyph = when (index) {
-                        0 -> Glyph.Calculator
-                        1 -> Glyph.Convert
-                        else -> Glyph.Flask
-                    },
+                    glyph = if (index == 0) Glyph.Calculator else Glyph.Convert,
                     tint = if (isActive) Color.White else QalColors.Muted,
                     modifier = Modifier.size(18.dp),
                 )
@@ -564,82 +531,4 @@ fun FittedText(
         softWrap = false,
         overflow = TextOverflow.Ellipsis,
     )
-}
-
-@Composable
-fun FormulaText(
-    formula: String,
-    color: Color = QalColors.VioletSoft,
-    modifier: Modifier = Modifier,
-    fontSize: Int = 10,
-    fontWeight: FontWeight = FontWeight.Bold,
-) {
-    val annotated = remember(formula, fontSize) {
-        buildAnnotatedString {
-            var index = 0
-            while (index < formula.length) {
-                val char = formula[index]
-                if (char.isDigit()) {
-                    val start = index
-                    while (index < formula.length && formula[index].isDigit()) index++
-                    withStyle(
-                        SpanStyle(
-                            baselineShift = BaselineShift.Subscript,
-                            fontSize = (fontSize * 0.72f).sp,
-                        ),
-                    ) {
-                        append(formula.substring(start, index))
-                    }
-                } else {
-                    append(char)
-                    index++
-                }
-            }
-        }
-    }
-    androidx.compose.foundation.text.BasicText(
-        text = annotated,
-        modifier = modifier,
-        style = TextStyle(
-            fontFamily = Nunito,
-            fontWeight = fontWeight,
-            fontSize = fontSize.sp,
-            lineHeight = (fontSize + 3).sp,
-            color = color,
-        ),
-        maxLines = 1,
-        softWrap = false,
-        overflow = TextOverflow.Ellipsis,
-    )
-}
-
-@Composable
-fun SuffixBadge(
-    suffix: String,
-    modifier: Modifier = Modifier,
-    onClick: (() -> Unit)? = null,
-) {
-    val clickModifier = if (onClick != null) {
-        Modifier.clickable(onClick = onClick)
-    } else {
-        Modifier
-    }
-    Box(
-        modifier = modifier
-            .then(clickModifier)
-            .clip(RoundedCornerShape(50))
-            .background(QalColors.Amber.copy(alpha = 0.14f))
-            .border(1.dp, QalColors.Amber.copy(alpha = 0.28f), RoundedCornerShape(50))
-            .padding(horizontal = 7.dp, vertical = 3.dp),
-        contentAlignment = Alignment.Center,
-    ) {
-        androidx.compose.foundation.text.BasicText(
-            text = suffix,
-            style = QalType.Micro.copy(
-                color = QalColors.AmberSoft,
-                fontWeight = FontWeight.Bold,
-            ),
-            maxLines = 1,
-        )
-    }
 }
