@@ -2,14 +2,19 @@
 
 A stand-alone Wear OS calculator built for round watches, tuned for the **Xiaomi Watch 2 Pro** (466 × 466 px, ~320 dpi, round display).
 
-Two swipeable tabs, one tiny app:
+Three swipeable tabs, one tiny app:
 
 - **Calculator** — large rounded material keys, a second `fx` keypad with 19 scientific functions, DEG/RAD modes, live preview and calculation history.
 - **Converter** — length, mass, temperature, volume, area, speed, time and data. Starts at `cm → mm` and `kg → g`.
+- **Algebra** — solve linear equations with any letters, including equations with the unknown on both sides, parentheses, fractions and symbolic multi-letter answers.
 
 | Basic keypad | Scientific keypad | Radians | Error |
 | --- | --- | --- | --- |
 | ![Calculator](docs/screenshots/calculator.png) | ![Scientific](docs/screenshots/scientific.png) | ![Radians](docs/screenshots/radians.png) | ![Error](docs/screenshots/error.png) |
+
+| Algebra | Solved | Multiple letters | Letter picker |
+| --- | --- | --- | --- |
+| ![Algebra](docs/screenshots/algebra.png) | ![Algebra solved](docs/screenshots/algebra-solved.png) | ![Algebra with multiple letters](docs/screenshots/algebra-symbolic.png) | ![Letter picker](docs/screenshots/algebra-letters.png) |
 
 | Scientific result | Converter | Amount entry |
 | --- | --- | --- |
@@ -43,6 +48,27 @@ The parser is a hand-written recursive-descent parser (no `eval`). It supports r
 
 The `DEG` / `RAD` pill is always visible in the display header. Trig history entries remember their angle mode and show it in the history list.
 
+## Algebra
+
+A dedicated equation editor solves linear equations in one unknown, with any letter `a–z`:
+
+| Equation | Answer |
+| --- | --- |
+| `3x + 5 = 20` | `x = 5` |
+| `3t + 5 = 20` | `t = 5` |
+| `2(x − 3) = 4x` | `x = −3` |
+| `x/2 + 3 = 7` | `x = 8` |
+| `2t + 3q = 12` | `t = 6 − 1.5q` (solved for `t`) |
+
+- Tap the letter pill in the display header to choose the unknown. The variable key on the keypad inserts that letter.
+- The solver handles parentheses, decimals, constant division, negative coefficients and the unknown on both sides.
+- Equations with several letters return a symbolic answer for the selected letter.
+- If only one letter appears, it is detected automatically, so `3y + 5 = 20` works even if the selected letter is still `x`.
+- Non-linear expressions (`x·x`, `x²`, variables in a denominator) and malformed equations show a clear error instead of a wrong answer.
+- `=` inserts the separator; press it again or use **Solve** to evaluate.
+
+The algebra parser is separate from the scientific calculator parser and works with a linear polynomial `constant + Σ(coefficient · letter)` rather than a single numeric evaluator.
+
 ## Converter
 
 - Length, mass, temperature, volume, area, speed, time and data.
@@ -54,7 +80,7 @@ The `DEG` / `RAD` pill is always visible in the display header. Trig history ent
 
 - Layout checked against the round 466 × 466 display: outer key columns are inset to the safe circle and the bottom rows use deliberately centered, reduced key counts.
 - Rotating crown switches tabs; lists support rotary scrolling.
-- Full-screen watch dialogs for history, unit selection and amount entry.
+- Full-screen watch dialogs for history, unit selection, amount entry and the algebra letter picker.
 - Haptic ticks on keys and long-press feedback for equals and destructive actions.
 - Dark Material-You-inspired palette based on the QuickCalc look: ink, slate, violet and teal, rounded Nunito type.
 - Fully offline and standalone. No network permission.
@@ -87,10 +113,11 @@ On the Xiaomi Watch 2 Pro: enable Developer options and Wireless debugging on th
 ```
 app/src/main/java/com/qalsheet/
   MainActivity.kt          entry point
-  QalSheetApp.kt           two-tab Wear pager
+  QalSheetApp.kt           three-tab Wear pager
   ui/                      theme, typography, custom icons, dialogs, page switch
   calc/                    expression parser, calculator state and screens
   convert/                 unit data, conversion state and screen
+  algebra/                 equation editor, linear solver, letter picker
 app/src/test/              JVM unit tests
 ```
 

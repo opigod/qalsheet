@@ -6,12 +6,13 @@ This file is the working guide for anyone (human or agent) changing QalSheet.
 
 QalSheet is a stand-alone Wear OS calculator for round watches. The reference device is the **Xiaomi Watch 2 Pro**: 1.43" AMOLED, 466 × 466 px, ~320 dpi (≈233 dp), round, rotating crown. It is a native Kotlin/Jetpack Compose app — no WebView, no React Native, no network use.
 
-The two tabs are:
+The three tabs are:
 
 1. Calculator (numeric keypad, `fx` scientific page, history)
-2. Unit converter (8 categories, unit pickers, amount keypad)
+2. Converter (8 categories, unit pickers, amount keypad)
+3. Algebra (linear-equation editor and solver, any letters)
 
-The Chemistry tab was intentionally removed in 1.1.0. Do not add a third top-level tab without checking the round-screen tab spacing and product scope.
+The Chemistry tab was intentionally removed in 1.1.0. Do not add a fourth top-level tab without checking the round-screen tab spacing and product scope.
 
 ## Toolchain
 
@@ -50,16 +51,22 @@ The screen is a circle, not a rounded rectangle. Fixed layouts that look fine in
   - 5-column grid; the bottom row is `blank, 0, ., +, blank` on purpose. Do not fill the bottom corners with buttons.
   - the display header carries a ~54 dp `123`/`fx` switch, a 30 dp DEG/RAD tag and an optional 20 dp history icon; keep the row to 20 dp and let the expression preview ellipsize
 - The `fx` scientific page is also a 5-column, 4-row grid. Its bottom row contains only four centered function keys (`! % ± 1/x`); the top three rows hold 5 keys each. Do not add a sixth column or a fifth row; both would clip at 466 × 466.
+- The Algebra page uses the same 5-column, 4-row geometry:
+  - top three rows: `7 8 9 ÷ (` / `4 5 6 × )` / `1 2 3 − =`
+  - bottom row: four centered keys `0 . variable +`
+  - the display header holds the C key, backspace, variable/letter pill and Solve; keep the row 24 dp and do not make the Solve pill wider than ~50 dp
+  - the display is weighted 0.34 and the keypad 0.66; this is intentionally a little tighter than the calculator so the equation/result and hint fit above the keypad
 - Changes to key sizes or root padding must be checked on a 466 × 466 / 320 dpi round emulator, not just in Preview.
 - The converter uses a 170 × 98 dp card with a 24 dp corner radius, centered in a vertically centered page. Its category strip is a `LazyRow`; do not move it into the bottom half of the circle.
 - The list pages use `ScalingLazyColumn`. For normal top-to-bottom fixed content, set `autoCentering = null` and disable the fisheye with `ScalingLazyColumnDefaults.scalingParams(edgeScale = 1f, edgeAlpha = 1f, ...)`. Beware: `rememberScalingLazyListState()` defaults to `initialCenterItemIndex = 1`, which starts a list scrolled past its first item. Set `initialCenterItemIndex = 0` for top-of-list dialogs; set it to the selected row for pickers.
+- The algebra letter picker is a 4-column `ScalingLazyColumn`; selecting a letter near the bottom may require scrolling. Do not put the picker's full grid in a fixed Column.
 
 ## Architecture
 
 ```
 com.qalsheet
   MainActivity.kt                 ComponentActivity + edge-to-edge
-  QalSheetApp.kt                  root screen, 2-tab Wear pager, hoisted state
+  QalSheetApp.kt                  root screen, 3-tab Wear pager, hoisted state
   ui/QalTheme.kt                  colors, Nunito family, typography, background
   ui/Components.kt                custom Canvas icons, tabs, page switch,
                                   mode tag, dialog shell, pill, fitted text
@@ -68,9 +75,11 @@ com.qalsheet
   convert/Units.kt                MeasureUnit, UnitCategory, conversion data
   convert/ConverterState.kt       category/unit/input state
   convert/ConverterPage.kt        converter, amount keypad, unit picker
+  algebra/AlgebraEngine.kt        multi-letter linear solver + AlgebraState
+  algebra/AlgebraPage.kt          equation editor, keypad, letter picker
 ```
 
-State objects (`CalculatorState`, `ConverterState`) are created in `QalSheetApp` and passed down. This keeps values alive when the pager disposes a neighbour page. Do not move long-lived state back inside a page without checking pager disposal.
+State objects (`CalculatorState`, `ConverterState`, `AlgebraState`) are created in `QalSheetApp` and passed down. This keeps values alive when the pager disposes a neighbour page. Do not move long-lived state back inside a page without checking pager disposal.
 
 ## Design system
 
@@ -104,9 +113,9 @@ Rules:
 
 ### Scientific mode
 
-Scientific functions live in the Calculator tab, not as a third top-level tab.
+Scientific functions live in the Calculator tab, not as a fourth top-level tab.
 
-- The display header contains `QalPageSwitch` (`123` / `fx`) and a `QalModeTag` (`DEG` / `RAD`). Both are always visible.
+- The display header contains `QalPageSwitch` (`123` / `fx`) and `QalModeTag` (`DEG` / `RAD`). Both are always visible.
 - The `fx` page shows 19 full-size function keys:
   `sin cos tan asin acos atan ln log √ x² x^y π e ( ) ! % ± 1/x`.
 - Tapping a function applies it to the current expression and automatically returns to the `123` page. The user then enters the argument or presses `=`.
@@ -127,6 +136,33 @@ Scientific functions live in the Calculator tab, not as a third top-level tab.
 The standard UI intentionally exposes only the numeric keypad; parentheses, powers and scientific functions are reached through the fx page. The equals key is in the right column of row 3, matching the QuickCalc layout. History is in memory, newest first, capped at 40, and is not persisted.
 
 When changing parser or function-application logic, update `CalculatorEngineTest` and `ScientificCalculatorTest`, and check both keypad pages on the round emulator.
+
+## Algebra
+
+`AlgebraEngine` is a separate linear-polynomial solver. It does not use the scientific calculator’s numeric parser.
+
+- A polynomial is `constant + Σ(coefficient · letter)`. Letters are individual variables (`a`–`z`); there is no implicit function syntax.
+- Supports `+ − × ÷`, parentheses, decimals, unary signs and implicit multiplication (`3x`, `2(x+y)`).
+- Multiplication of two factors that both contain letters is rejected (`Only linear equations`): `x·y`, `x²`, `x(x+1)` are nonlinear.
+- Division is only allowed by a constant. `1/x` or `x/(x+1)` returns `No letters in denominator`.
+- `3x + 5 = 20` → `x = 5`.
+- `3t + 5 = 20` → `t = 5`; single-variable equations auto-detect the letter even if another letter is selected.
+- `2t + 3q = 12` solved for `t` → `t = 6 − 1.5q`.
+- If multiple letters remain and the selected letter is absent, the result is an error asking the user to choose a letter from the equation.
+- If all letter coefficients cancel: constant zero → infinite solutions; nonzero → no solution.
+- Answers are rounded to six decimals (scientific notation outside a reasonable range); symbolic coefficients use the same formatter.
+
+UI/state rules:
+
+- `AlgebraState` holds `equation`, `result` and the selected `variable`.
+- The equation keypad inserts the selected variable through `insertVariable()`. To enter multiple letters, the user selects another letter via the variable pill, then taps the variable key.
+- Selecting a letter clears the result but keeps the equation.
+- `=` inserts the equation separator. Pressing `=` again, or tapping **Solve**, evaluates.
+- Editing any key after a solution clears the result and continues editing the equation.
+- The letter picker is a full-screen dialog; it uses a 4-column scaling list and centers the currently selected row.
+- `formatExpression()` formats symbolic right-hand sides, e.g. `6 − 1.5y`; signs, unit coefficients and sorted letters matter.
+
+When changing the solver, extend `AlgebraEngineTest` with numeric, multi-letter, no-solution, infinite-solution and malformed-input cases.
 
 ## Converter
 
@@ -161,22 +197,24 @@ Before shipping a layout change:
 
 - Calculator: all 18 keys of the numeric page and all 19 function keys of the fx page fully visible on the 466 × 466 round screen; `123`/`fx` switch and DEG/RAD tag fit the 20 dp header; long results shrink/ellipsize; history opens from the clock icon.
 - Scientific mode: DEG/RAD changes trig results; `sin(30)` in DEG is 0.5; applying a function returns to the numeric page; an out-of-domain expression (`asin(2)` or `tan(90)`) shows a red Error; history shows the mode.
+- Algebra: `3x+5=20` solves to `x = 5`; `3t+5=20` solves to `t = 5`; `2t+3q=12` solved for `t` shows `t = 6 − 1.5q`; the letter picker can choose a visible letter; the C/backspace/Solve row and all 19 equation keys are fully visible; the hint/result text fits above the keypad.
 - Converter: all 8 categories reachable, category row scrolls, unit picker selected row centered, amount keypad keys not clipped, sign toggle and swap work.
 - Round-screen mask: no interactive control in the outer corners.
 - Run `./gradlew :app:testDebugUnitTest :app:assembleDebug`.
 
-Reference screenshots live in `docs/screenshots/`: basic keypad, fx page, RAD state, error result, converter and amount entry.
+Reference screenshots live in `docs/screenshots/`: basic keypad, fx page, RAD state, error result, algebra page, algebra solution, multi-letter algebra, converter and amount entry.
 
 ## Versioning and release
 
-- Current app version: `1.1.0` (`versionCode 2`), with the Chemistry tab removed.
+- Current app version: `1.2.0` (`versionCode 3`), adding the Algebra tab.
 - Build the APK, then create a GitHub release with the debug-signed APK. Update `versionCode`/`versionName` in `app/build.gradle.kts` for every published build.
-- The GitHub repository is `opigod/qalsheet`; releases use tags such as `v1.1.0`.
+- The GitHub repository is `opigod/qalsheet`; releases use tags such as `v1.2.0`.
 - Keep release notes honest: the APK is debug-signed for sideloading, not a Play Store build. Include a SHA-256 checksum.
 
 ## Known limitations / good next steps
 
 - No ambient/AOD, tile or watch-face complication yet.
-- Calculator history, active keypad page and angle mode are not persisted across process death.
-- No cursor/selection editing: the expression is append/backspace only. The fx page applies functions to the current expression and returns to the numeric page.
-- Adding a settings screen for haptics/theme would require a third tab or a dialog; measure the round safe area first.
+- Calculator history, active keypad page, angle mode and algebra state are not persisted across process death.
+- No cursor/selection editing: expressions and equations are append/backspace only.
+- Algebra supports linear equations only. Quadratic/polynomial roots, systems of equations and inequality solving are not implemented.
+- Adding a settings screen for haptics/theme would require a fourth tab or a dialog; measure the round safe area first.

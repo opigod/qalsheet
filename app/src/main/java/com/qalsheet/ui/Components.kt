@@ -58,6 +58,7 @@ import androidx.wear.compose.foundation.hierarchicalFocusGroup
 enum class Glyph {
     Calculator,
     Convert,
+    Algebra,
     History,
     Close,
     Check,
@@ -66,7 +67,7 @@ enum class Glyph {
     Backspace,
 }
 
-private val tabLabels = listOf("Calculator", "Converter")
+private val tabLabels = listOf("Calculator", "Converter", "Algebra")
 
 @Composable
 fun GlyphIcon(
@@ -111,6 +112,13 @@ fun GlyphIcon(
                 drawLine(tint, Offset(w * 0.83f, h * 0.66f), Offset(w * 0.17f, h * 0.66f), strokeWidth, StrokeCap.Round)
                 drawLine(tint, Offset(w * 0.30f, h * 0.53f), Offset(w * 0.17f, h * 0.66f), strokeWidth, StrokeCap.Round)
                 drawLine(tint, Offset(w * 0.30f, h * 0.79f), Offset(w * 0.17f, h * 0.66f), strokeWidth, StrokeCap.Round)
+            }
+
+            Glyph.Algebra -> {
+                drawLine(tint, Offset(w * 0.17f, h * 0.29f), Offset(w * 0.47f, h * 0.71f), strokeWidth, StrokeCap.Round)
+                drawLine(tint, Offset(w * 0.47f, h * 0.29f), Offset(w * 0.17f, h * 0.71f), strokeWidth, StrokeCap.Round)
+                drawLine(tint, Offset(w * 0.59f, h * 0.41f), Offset(w * 0.84f, h * 0.41f), strokeWidth, StrokeCap.Round)
+                drawLine(tint, Offset(w * 0.59f, h * 0.61f), Offset(w * 0.84f, h * 0.61f), strokeWidth, StrokeCap.Round)
             }
 
             Glyph.History -> {
@@ -227,7 +235,11 @@ fun QalTabs(
                 contentAlignment = Alignment.Center,
             ) {
                 GlyphIcon(
-                    glyph = if (index == 0) Glyph.Calculator else Glyph.Convert,
+                    glyph = when (index) {
+                        0 -> Glyph.Calculator
+                        1 -> Glyph.Convert
+                        else -> Glyph.Algebra
+                    },
                     tint = if (isActive) Color.White else QalColors.Muted,
                     modifier = Modifier.size(18.dp),
                 )
