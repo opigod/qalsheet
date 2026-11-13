@@ -1,0 +1,15 @@
+[package]
+name = "qalsheet-desktop"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "qalsheet"
+path = "src/main.rs"
+
+[dependencies]
+qalsheet-ui.workspace = true
+eframe.workspace = true
+log.workspace = true

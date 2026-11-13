@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=QalSheet Pro
+GenericName=Scientific Calculator
+Comment=Native scientific calculator, grapher, algebra solver and converter
+Exec=qalsheet
+Icon=qalsheet
+Terminal=false
+Categories=Utility;Calculator;
+Keywords=calculator;graph;algebra;convert;math;
+StartupWMClass=qalsheet
