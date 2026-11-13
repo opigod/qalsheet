@@ -1,134 +1,188 @@
-# QalSheet
+# QalSheet 2.0
 
-A stand-alone Wear OS calculator built for round watches, tuned for the **Xiaomi Watch 2 Pro** (466 × 466 px, ~320 dpi, round display).
+A native scientific calculator for **Linux**, **Android** and **Wear OS**, written in Rust with
+[egui/eframe](https://github.com/emilk/egui). It is not a WebView wrapper, not Electron, and it
+does not start a JVM. The Linux release is a single ~8 MB binary; the Android app contains three
+native ABIs and no DEX code.
 
-Three swipeable tabs, one tiny app:
+The look follows the original Wear OS app: ink-black background, Nunito, violet actions, teal
+constants, round keys and pills.
 
-- **Calculator** — large rounded material keys, a second `fx` keypad with 19 scientific functions, DEG/RAD modes, live preview and calculation history.
-- **Converter** — length, mass, temperature, volume, area, speed, time and data. Starts at `cm → mm` and `kg → g`.
-- **Algebra** — solve linear and polynomial equations with any letters, including brackets, fractions, powers, multiple real roots and symbolic multi-letter answers.
+![Calculator](docs/screenshots/calculator.png)
 
-| Basic keypad | Scientific keypad | Radians | Error |
-| --- | --- | --- | --- |
-| ![Calculator](docs/screenshots/calculator.png) | ![Scientific](docs/screenshots/scientific.png) | ![Radians](docs/screenshots/radians.png) | ![Error](docs/screenshots/error.png) |
+## What it does
 
-| Algebra | Solved | Multiple letters | Letter picker |
-| --- | --- | --- | --- |
-| ![Algebra](docs/screenshots/algebra.png) | ![Algebra solved](docs/screenshots/algebra-solved.png) | ![Algebra with multiple letters](docs/screenshots/algebra-symbolic.png) | ![Letter picker](docs/screenshots/algebra-letters.png) |
-
-| Scientific result | Converter | Amount entry |
-| --- | --- | --- |
-| ![Scientific result](docs/screenshots/scientific-result.png) | ![Converter](docs/screenshots/converter.png) | ![Amount keypad](docs/screenshots/amount.png) |
-
-## Calculator
-
-The calculator has two pages inside the Calculator tab. Use the `123` / `fx` switch in the display header:
-
-- **123** is the large numeric keypad.
-- **fx** is a full-size scientific function page. Tapping a function inserts it into the expression and returns to the numeric page so you can keep typing or press `=`.
-
-Supported functions:
-
-`sin cos tan asin acos atan ln log √ x² x^y π e ( ) ! % ± 1/x`
-
-plus digits, decimal, `+ − × ÷`, clear, backspace and equals.
-
-Examples:
-
-| Expression | Result |
+| Tab | Features |
 | --- | --- |
-| `sin(30)` in DEG | 0.5 |
-| `sin(π÷2)` in RAD | 1 |
-| `2^3^2` | 512 |
-| `5!` | 120 |
-| `200×10%` | 20 |
-| `2π` | 6.283185… |
+| **Calculator** | Scientific keypad, DEG/RAD, implicit multiplication, powers, roots, logs, trig, factorial, percent, memory (`MC/MR/M+/M-`), `Ans`, 100-entry history, copy result |
+| **Graph** | Up to 6 functions, pan/zoom, trace readout, x-intercepts, intersections, value table, auto-fit |
+| **Algebra** | Polynomial equations through degree 12, exact linear/quadratic roots, numeric higher roots, multi-letter linear solutions, rational equations with domain constraints, examples |
+| **Converter** | 11 categories: length, mass, temperature, volume, area, speed, time, data, angle, pressure, energy; search-free unit picker, swap, live keypad, reference table |
+| **Tools** | Statistics and quartiles, paired linear regression, base-n/bitwise programmer mode, numeric derivative and definite integral, searchable physical constants |
 
-The parser is a hand-written recursive-descent parser (no `eval`). It supports right-associative powers, unary minus, implicit multiplication (`2π`, `2(3+4)`, `2sin(30)`) and graceful errors for divide-by-zero, invalid trig/log/root domains and overflow.
+The graph, statistics, programmer, calculus and constants tools are deliberately **not** on the
+watch. Wear keeps the original three tabs (Calculator, Converter, Algebra) and the original
+5 × 4 calculator keypad.
 
-The `DEG` / `RAD` pill is always visible in the display header. Trig history entries remember their angle mode and show it in the history list.
+### Screens
 
-## Algebra
-
-A dedicated equation editor solves linear and polynomial equations in one unknown, with any letter `a–z`:
-
-| Equation | Answer |
+| Graph | Algebra |
 | --- | --- |
-| `3x + 5 = 20` | `x = 5` |
-| `3t + 5 = 20` | `t = 5` |
-| `2(x − 3) = 4x` | `x = −3` |
-| `x/2 + 3 = 7` | `x = 8` |
-| `4[y − 3(2y − 1)] = 2[y − 2(3y + 2)]` | `y = 2` |
-| `5/x = 2/3` | `x = 7.5` |
-| `x² = 4` | `x = −2, 2` |
-| `x³ − 6x² + 11x − 6 = 0` | `x = 1, 2, 3` |
-| `2t + 3q = 12` | `t = 6 − 1.5q` (solved for `t`) |
+| ![Graph](docs/screenshots/graph.png) | ![Algebra](docs/screenshots/algebra.png) |
 
-- Tap the letter pill in the display header to choose the unknown. The variable key on the keypad inserts that letter.
-- Tap the `x^` key in the display header to insert a power, then type the whole-number exponent. Unicode forms such as `x²` and `x³` are also accepted.
-- The solver handles parentheses, nested `[ ]` / `{ }` groups, decimals, fractions, negative coefficients and the unknown on both sides.
-- Nested groups follow textbook notation automatically: the grouping key inserts `(`, then `[`, then `{` as you go deeper. Its label updates, and the close key inserts the matching `)`, `]` or `}`.
-- The unknown may appear in a denominator. Roots that would divide by zero are rejected.
-- Linear equations with several letters return a symbolic answer for the selected letter.
-- If only one letter appears, it is detected automatically, so `3y + 5 = 20` works even if the selected letter is still `x`.
-- Quadratic equations return both real roots. Equations of degree 3–12 use numeric real-root finding and show all distinct real roots; an equation with only complex roots reports `No real solution`.
-- Equations with powers and more than one letter show a clear error; use one letter when the equation is nonlinear.
-- `=` inserts the separator; press it again or use **Solve** to evaluate.
+| Converter | Data & statistics |
+| --- | --- |
+| ![Converter](docs/screenshots/converter.png) | ![Statistics](docs/screenshots/tools-data.png) |
 
-The algebra parser is separate from the scientific calculator parser. It expands integer powers into polynomials and rational quotients, then solves the resulting equation. Linear and quadratic cases are exact; higher-degree real roots are numeric and rounded to six decimals.
+| Programmer | Calculus |
+| --- | --- |
+| ![Programmer](docs/screenshots/tools-programmer.png) | ![Calculus](docs/screenshots/tools-calculus.png) |
 
-## Converter
+<details>
+<summary>Android phone and Wear OS screens</summary>
 
-- Length, mass, temperature, volume, area, speed, time and data.
-- Full unit pickers, a custom amount keypad, a sign toggle and a swap control.
-- Decimal (`kB = 1000 B`) and binary (`KiB = 1024 B`) data units are labelled separately.
-- Defaults include `cm → mm`, `kg → g`, `°C → °F`, `l → ml`, `m² → cm²`, `km/h → m/s`, `h → min`, and `MB → GB`.
+![QalSheet Pro on Android](docs/screenshots/android-phone.png)
 
-## Watch-first details
+| Calculator | Scientific |
+| --- | --- |
+| ![Wear calculator](docs/screenshots/wearos-calculator.png) | ![Wear scientific](docs/screenshots/wearos-scientific.png) |
 
-- Layout checked against the round 466 × 466 display: outer key columns are inset to the safe circle and the bottom rows use deliberately centered, reduced key counts.
-- Rotating crown switches tabs; lists support rotary scrolling.
-- Full-screen watch dialogs for history, unit selection, amount entry and the algebra letter picker.
-- Haptic ticks on keys and long-press feedback for equals and destructive actions.
-- Dark Material-You-inspired palette based on the QuickCalc look: ink, slate, violet and teal, rounded Nunito type.
-- Fully offline and standalone. No network permission.
+| Converter | Algebra |
+| --- | --- |
+| ![Wear converter](docs/screenshots/wearos-converter.png) | ![Wear algebra](docs/screenshots/wearos-algebra.png) |
 
-## Requirements
+</details>
 
-- JDK 17 or newer (the project was built with JDK 21).
-- Android SDK Platform 35 and Build Tools 35.0.0.
-- Android Studio Ladybug or newer, or the command line. The Gradle wrapper (8.13) downloads the rest.
+## Install
 
-`local.properties` is intentionally not committed. Set `sdk.dir=...` locally or let Android Studio create it.
+### Arch Linux
 
-## Build and install
+The repository contains a `PKGBUILD` that builds and installs the desktop binary, desktop entry
+and icon. A prebuilt Arch package is also in `dist/`:
 
 ```bash
-./gradlew :app:assembleDebug
-adb install -r app/build/outputs/apk/debug/app-debug.apk
+makepkg -si
+# or
+sudo pacman -U dist/qalsheet-2.0.0-1-x86_64.pkg.tar.zst
+qalsheet
 ```
 
-Run the JVM unit tests:
+### AppImage (any x86_64 Linux with X11/Wayland and OpenGL)
 
 ```bash
-./gradlew :app:testDebugUnitTest
+chmod +x dist/QalSheet-2.0.0-x86_64.AppImage
+./dist/QalSheet-2.0.0-x86_64.AppImage
 ```
 
-On the Xiaomi Watch 2 Pro: enable Developer options and Wireless debugging on the watch, pair it with your computer, then run the `adb install` command. The app is a Wear OS standalone app, so it does not need the phone.
+The AppImage is intentionally small: the binary relies only on system glibc, libm, libgcc and the
+normal X11/Wayland/OpenGL stack. It does not bundle a browser engine or a JVM.
 
-## Project layout
+Checksums for every artifact are in `dist/SHA256SUMS`.
 
-```
-app/src/main/java/com/qalsheet/
-  MainActivity.kt          entry point
-  QalSheetApp.kt           three-tab Wear pager
-  ui/                      theme, typography, custom icons, dialogs, page switch
-  calc/                    expression parser, calculator state and screens
-  convert/                 unit data, conversion state and screen
-  algebra/                 equation editor, polynomial solver, letter picker
-app/src/test/              JVM unit tests
+### Android phone
+
+```bash
+adb install -r dist/com.qalsheet.pro-2.0.0.apk
 ```
 
-## Font
+### Wear OS
 
-Nunito is bundled under the SIL Open Font License. See [licenses/nunito-OFL.txt](licenses/nunito-OFL.txt).
+```bash
+adb install -r dist/com.qalsheet-2.0.0.apk
+```
+
+Both APKs are **debug-signed** so they can be sideloaded. They share the same native Rust code;
+the phone build enables the five-tab layout and the watch build enables the three-tab round layout.
+
+## Build from source
+
+Requirements: Rust 1.95+ (edition 2024), JDK not required to run. For Linux the usual X11/Wayland
+development libraries are enough.
+
+```bash
+cargo build --release -p qalsheet-desktop
+./target/release/qalsheet
+
+# tests
+cargo test --workspace
+
+# AppImage (downloads linuxdeploy/appimagetool on first run)
+./scripts/build-appimage.sh
+```
+
+### Android / Wear OS
+
+1. Install the Android SDK and NDK (r27 or newer).
+2. Add the Rust targets:
+   ```bash
+   rustup target add aarch64-linux-android armv7-linux-androideabi x86_64-linux-android
+   ```
+3. Point the build script at the SDK:
+   ```bash
+   export ANDROID_HOME="$HOME/Android/Sdk"
+   export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/27.2.12479018"
+   ./scripts/build-android.sh all
+   ```
+   APKs are written to `dist/`. Pass an ABI list to build one ABI, for example
+   `./scripts/build-android.sh phone x86_64`.
+4. Install with `adb install -r ...`.
+
+The app uses `android.app.NativeActivity` with `android:hasCode="false"`. There is no Java,
+Kotlin, DEX or WebView in the application package; the only build-time JVM use is Android's
+`apksigner` tool.
+
+## Architecture
+
+```
+crates/
+  qalsheet-core/      pure Rust, dependency-free math and state
+    expr.rs           recursive-descent expression compiler + AST evaluator
+    calculator.rs     calculator/history/memory/function-key semantics
+    algebra.rs        sparse polynomial + rational solver (Durand–Kerner)
+    graph.rs          root finding, intersections, tables, nice grid steps
+    units.rs          11 unit categories and affine conversion
+    stats.rs          quartiles, standard deviations, regression
+    programmer.rs     bases and bitwise operations
+    calculus.rs       5-point derivative, adaptive Simpson integral
+    format.rs         12-significant-digit display formatting
+  qalsheet-ui/        shared egui UI for desktop, phone and watch
+    theme.rs          palette, Nunito, painting helpers
+    widgets.rs        keys, pills, fields, modals
+    screens/          calculator, graph, algebra, converter, tools
+  qalsheet-desktop/   Linux binary (eframe/glow)
+  qalsheet-android/   Android NativeActivity cdylib
+  qalsheet-wear/      Wear OS NativeActivity cdylib
+```
+
+The core has no UI dependency and is covered by unit tests. The three frontends share the same
+screens and state; only the tab set, safe insets and watch-sized layout differ.
+
+### Performance notes
+
+- Release profile uses `lto = "fat"`, `codegen-units = 1`, `panic = "abort"` and symbol stripping.
+- Expression compilation happens once; graph sampling reuses the AST instead of reparsing text.
+- The desktop binary is ~8.4 MB and typically starts in well under a second.
+- One-ABI APK ≈ 3 MB; universal APK (arm64-v8a, armeabi-v7a, x86_64) ≈ 8.1 MB.
+- No background services, no network permissions, no analytics, no persistence database.
+
+## Controls
+
+- **Calculator:** physical digits, `+ - * /`, `^`, parentheses, Enter (`=`), Backspace and Esc
+  (`C`) work on desktop. On Android the custom keypad is used.
+- **Graph:** drag to pan, scroll or pinch to zoom, tap to set a trace point, double tap to reset.
+- **Text fields** use the platform keyboard (system keyboard on Android, physical keyboard on
+  Linux) and update results live.
+
+## Known limitations
+
+- History, memory and current tab are in memory only; they reset when the process is killed.
+- Graph is real-valued; no parametric/polar/3D plotting yet.
+- Algebra reports only real roots and does not show complex roots or full step-by-step proofs.
+- Watch has no graph or tools by design.
+- APKs are debug-signed sideload builds, not Play Store artifacts.
+- AppImage expects a working X11 or Wayland session with OpenGL; that is the standard Arch setup.
+
+## License
+
+MIT for the application code. Nunito is licensed under the SIL Open Font License; see
+`licenses/nunito-OFL.txt` and `crates/qalsheet-ui/fonts/OFL.txt`.
