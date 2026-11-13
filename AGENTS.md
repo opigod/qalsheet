@@ -10,7 +10,7 @@ The three tabs are:
 
 1. Calculator (numeric keypad, `fx` scientific page, history)
 2. Converter (8 categories, unit pickers, amount keypad)
-3. Algebra (linear-equation editor and solver, any letters)
+3. Algebra (polynomial-equation editor and solver, any letters)
 
 The Chemistry tab was intentionally removed in 1.1.0. Do not add a fourth top-level tab without checking the round-screen tab spacing and product scope.
 
@@ -54,7 +54,9 @@ The screen is a circle, not a rounded rectangle. Fixed layouts that look fine in
 - The Algebra page uses the same 5-column, 4-row geometry:
   - top three rows: `7 8 9 ÷ (` / `4 5 6 × )` / `1 2 3 − =`
   - bottom row: four centered keys `0 . variable +`
-  - the display header holds the C key, backspace, variable/letter pill and Solve; keep the row 24 dp and do not make the Solve pill wider than ~50 dp
+  - the two grouping keys stay in those positions but their labels are dynamic: they insert `(`, `[`, `{` by nesting depth and the matching closer; do not add extra bracket keys or columns
+  - the display header holds the C key, backspace, variable/letter pill, a 24 dp `x^` power key and Solve; keep the row 24 dp and do not make the Solve pill wider than ~50 dp
+  - the power key inserts `^` after a digit, letter or closing group; it never adds a fifth keypad row or a sixth column
   - the display is weighted 0.34 and the keypad 0.66; this is intentionally a little tighter than the calculator so the equation/result and hint fit above the keypad
 - Changes to key sizes or root padding must be checked on a 466 × 466 / 320 dpi round emulator, not just in Preview.
 - The converter uses a 170 × 98 dp card with a 24 dp corner radius, centered in a vertically centered page. Its category strip is a `LazyRow`; do not move it into the bottom half of the circle.
@@ -75,7 +77,7 @@ com.qalsheet
   convert/Units.kt                MeasureUnit, UnitCategory, conversion data
   convert/ConverterState.kt       category/unit/input state
   convert/ConverterPage.kt        converter, amount keypad, unit picker
-  algebra/AlgebraEngine.kt        multi-letter linear solver + AlgebraState
+  algebra/AlgebraEngine.kt        polynomial/rational solver + AlgebraState
   algebra/AlgebraPage.kt          equation editor, keypad, letter picker
 ```
 
@@ -139,30 +141,38 @@ When changing parser or function-application logic, update `CalculatorEngineTest
 
 ## Algebra
 
-`AlgebraEngine` is a separate linear-polynomial solver. It does not use the scientific calculator’s numeric parser.
+`AlgebraEngine` is a separate polynomial-equation solver. It does not use the scientific calculator’s numeric parser.
 
-- A polynomial is `constant + Σ(coefficient · letter)`. Letters are individual variables (`a`–`z`); there is no implicit function syntax.
-- Supports `+ − × ÷`, parentheses, decimals, unary signs and implicit multiplication (`3x`, `2(x+y)`).
-- Multiplication of two factors that both contain letters is rejected (`Only linear equations`): `x·y`, `x²`, `x(x+1)` are nonlinear.
-- Division is only allowed by a constant. `1/x` or `x/(x+1)` returns `No letters in denominator`.
+- The parser builds multivariate polynomials and rational quotients while parsing. Integer powers are expanded, so `(x+1)^2` becomes `x² + 2x + 1`; `x²`/`x³` Unicode input is normalized to `^`.
+- Supports `+ − × ÷ ^`, parentheses, nested `[ ]` and `{ }` groups, decimals (dot or comma), unary signs and implicit multiplication (`3x`, `2(x+y)`, `2[3x+1]`).
+- Powers must have a whole-number exponent from 0 to 12. `x^y`, `x^0.5` and `x^-1` are rejected with a clear message.
+- A single-letter equation is solved by degree:
+  - degree 1 → one exact root;
+  - degree 2 → exact quadratic formula, both real roots, `No real solution` when the discriminant is negative;
+  - degree 3–12 → numeric real roots (Durand–Kerner), distinct roots only.
+- Quadratic roots are returned as `SolvedRoots` when there are two; higher-degree equations do the same for multiple real roots. The display joins them, e.g. `x = −2, 2`.
+- Linear equations with several letters return a symbolic expression for the selected letter. Powers with more than one letter are rejected (`Use one letter with powers`).
+- Division may be by a constant or a polynomial. The parser keeps every denominator as a nonzero constraint; roots that make a denominator zero are rejected as `No solution`. Nested fractions keep all constraints.
 - `3x + 5 = 20` → `x = 5`.
 - `3t + 5 = 20` → `t = 5`; single-variable equations auto-detect the letter even if another letter is selected.
 - `2t + 3q = 12` solved for `t` → `t = 6 − 1.5q`.
 - If multiple letters remain and the selected letter is absent, the result is an error asking the user to choose a letter from the equation.
-- If all letter coefficients cancel: constant zero → infinite solutions; nonzero → no solution.
-- Answers are rounded to six decimals (scientific notation outside a reasonable range); symbolic coefficients use the same formatter.
+- If all terms cancel: zero → infinite solutions; nonzero constant → no solution.
+- Answers are rounded to six decimals (scientific notation outside a reasonable range); symbolic coefficients use the same formatter. Numeric higher-degree roots are approximations rounded for display.
 
 UI/state rules:
 
 - `AlgebraState` holds `equation`, `result` and the selected `variable`.
 - The equation keypad inserts the selected variable through `insertVariable()`. To enter multiple letters, the user selects another letter via the variable pill, then taps the variable key.
+- The header power key calls `insertPower()`; it appends `^` only after a digit, letter or closing group. The exponent digits are typed normally.
 - Selecting a letter clears the result but keeps the equation.
 - `=` inserts the equation separator. Pressing `=` again, or tapping **Solve**, evaluates.
 - Editing any key after a solution clears the result and continues editing the equation.
 - The letter picker is a full-screen dialog; it uses a 4-column scaling list and centers the currently selected row.
 - `formatExpression()` formats symbolic right-hand sides, e.g. `6 − 1.5y`; signs, unit coefficients and sorted letters matter.
+- Multiple roots use `SolvedRoots` and display as `x = −2, 2`. Complex-only equations use `NoRealSolution` → `No real solution`.
 
-When changing the solver, extend `AlgebraEngineTest` with numeric, multi-letter, no-solution, infinite-solution and malformed-input cases.
+When changing the solver, extend `AlgebraEngineTest` with numeric, quadratic, higher-power, multi-letter, no-solution, infinite-solution, no-real-solution and malformed-input cases.
 
 ## Converter
 
@@ -197,7 +207,7 @@ Before shipping a layout change:
 
 - Calculator: all 18 keys of the numeric page and all 19 function keys of the fx page fully visible on the 466 × 466 round screen; `123`/`fx` switch and DEG/RAD tag fit the 20 dp header; long results shrink/ellipsize; history opens from the clock icon.
 - Scientific mode: DEG/RAD changes trig results; `sin(30)` in DEG is 0.5; applying a function returns to the numeric page; an out-of-domain expression (`asin(2)` or `tan(90)`) shows a red Error; history shows the mode.
-- Algebra: `3x+5=20` solves to `x = 5`; `3t+5=20` solves to `t = 5`; `2t+3q=12` solved for `t` shows `t = 6 − 1.5q`; the letter picker can choose a visible letter; the C/backspace/Solve row and all 19 equation keys are fully visible; the hint/result text fits above the keypad.
+- Algebra: `3x+5=20` solves to `x = 5`; `3t+5=20` solves to `t = 5`; `2t+3q=12` solved for `t` shows `t = 6 − 1.5q`; `4[y−3(2y−1)]=2[y−2(3y+2)]` solves to `y = 2`; `5/x=2/3` solves to `x = 7.5`; `x^2=4` shows `x = −2, 2`; `x^3−6x^2+11x−6=0` shows `x = 1, 2, 3`; `x^2+1=0` shows `No real solution`; the power key inserts `^`; the letter picker can choose a visible letter; the C/backspace/power/Solve row and all 19 equation keys are fully visible; the hint/result text fits above the keypad.
 - Converter: all 8 categories reachable, category row scrolls, unit picker selected row centered, amount keypad keys not clipped, sign toggle and swap work.
 - Round-screen mask: no interactive control in the outer corners.
 - Run `./gradlew :app:testDebugUnitTest :app:assembleDebug`.
@@ -206,9 +216,9 @@ Reference screenshots live in `docs/screenshots/`: basic keypad, fx page, RAD st
 
 ## Versioning and release
 
-- Current app version: `1.2.0` (`versionCode 3`), adding the Algebra tab.
+- Current app version: `1.3.0` (`versionCode 4`), adding brackets, rational equations, and powers to Algebra.
 - Build the APK, then create a GitHub release with the debug-signed APK. Update `versionCode`/`versionName` in `app/build.gradle.kts` for every published build.
-- The GitHub repository is `opigod/qalsheet`; releases use tags such as `v1.2.0`.
+- The GitHub repository is `opigod/qalsheet`; releases use tags such as `v1.3.0`.
 - Keep release notes honest: the APK is debug-signed for sideloading, not a Play Store build. Include a SHA-256 checksum.
 
 ## Known limitations / good next steps
@@ -216,5 +226,5 @@ Reference screenshots live in `docs/screenshots/`: basic keypad, fx page, RAD st
 - No ambient/AOD, tile or watch-face complication yet.
 - Calculator history, active keypad page, angle mode and algebra state are not persisted across process death.
 - No cursor/selection editing: expressions and equations are append/backspace only.
-- Algebra supports linear equations only. Quadratic/polynomial roots, systems of equations and inequality solving are not implemented.
+- Algebra solves single-letter polynomial equations up to degree 12. Degree 1–2 are exact; degrees 3–12 use numeric real roots. Complex roots are not shown (only `No real solution`), powers with multiple letters are rejected, and systems/inequalities are not implemented.
 - Adding a settings screen for haptics/theme would require a fourth tab or a dialog; measure the round safe area first.

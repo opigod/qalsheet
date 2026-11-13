@@ -145,6 +145,8 @@ private fun AlgebraDisplay(
                 letter = state.variable,
                 onClick = onChooseVariable,
             )
+            Spacer(Modifier.width(3.dp))
+            PowerButton(onClick = { state.press("^") })
             Spacer(Modifier.weight(1f))
             QalPill(
                 text = "Solve",
@@ -235,6 +237,38 @@ private fun VariableButton(
         )
         Spacer(Modifier.width(2.dp))
         GlyphIcon(Glyph.ChevronDown, QalColors.Faint, Modifier.size(8.dp))
+    }
+}
+
+@Composable
+private fun PowerButton(onClick: () -> Unit) {
+    val haptics = LocalHapticFeedback.current
+    Box(
+        modifier = Modifier
+            .size(24.dp)
+            .clip(CircleShape)
+            .background(QalColors.CardLift)
+            .border(1.dp, QalColors.BorderSoft, CircleShape)
+            .clickable {
+                haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)
+                onClick()
+            }
+            .semantics(mergeDescendants = true) {
+                contentDescription = "Insert power"
+                role = Role.Button
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        BasicText(
+            text = "x^",
+            style = QalType.Button.copy(
+                fontSize = 9.sp,
+                lineHeight = 11.sp,
+                color = QalColors.VioletSoft,
+                fontWeight = FontWeight.Bold,
+            ),
+            maxLines = 1,
+        )
     }
 }
 
@@ -348,8 +382,19 @@ private fun AlgebraKey(
         label = "algebraKeyScale",
     )
     val isVariable = spec.kind == AlgebraKeyKind.Variable
-    val label = if (isVariable) state.variable.toString() else spec.label
-    val description = if (isVariable) "Variable ${state.variable}" else spec.description
+    val isGroup = spec.kind == AlgebraKeyKind.Paren
+    val label = when {
+        isVariable -> state.variable.toString()
+        isGroup && spec.label == "(" -> state.nextOpenGroup.toString()
+        isGroup -> state.nextCloseGroup.toString()
+        else -> spec.label
+    }
+    val description = when {
+        isVariable -> "Variable ${state.variable}"
+        isGroup && spec.label == "(" -> "Open grouping ${state.nextOpenGroup}"
+        isGroup -> "Close grouping ${state.nextCloseGroup}"
+        else -> spec.description
+    }
 
     val background by animateColorAsState(
         targetValue = when (spec.kind) {

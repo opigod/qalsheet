@@ -6,7 +6,7 @@ Three swipeable tabs, one tiny app:
 
 - **Calculator** — large rounded material keys, a second `fx` keypad with 19 scientific functions, DEG/RAD modes, live preview and calculation history.
 - **Converter** — length, mass, temperature, volume, area, speed, time and data. Starts at `cm → mm` and `kg → g`.
-- **Algebra** — solve linear equations with any letters, including equations with the unknown on both sides, parentheses, fractions and symbolic multi-letter answers.
+- **Algebra** — solve linear and polynomial equations with any letters, including brackets, fractions, powers, multiple real roots and symbolic multi-letter answers.
 
 | Basic keypad | Scientific keypad | Radians | Error |
 | --- | --- | --- | --- |
@@ -50,7 +50,7 @@ The `DEG` / `RAD` pill is always visible in the display header. Trig history ent
 
 ## Algebra
 
-A dedicated equation editor solves linear equations in one unknown, with any letter `a–z`:
+A dedicated equation editor solves linear and polynomial equations in one unknown, with any letter `a–z`:
 
 | Equation | Answer |
 | --- | --- |
@@ -58,16 +58,24 @@ A dedicated equation editor solves linear equations in one unknown, with any let
 | `3t + 5 = 20` | `t = 5` |
 | `2(x − 3) = 4x` | `x = −3` |
 | `x/2 + 3 = 7` | `x = 8` |
+| `4[y − 3(2y − 1)] = 2[y − 2(3y + 2)]` | `y = 2` |
+| `5/x = 2/3` | `x = 7.5` |
+| `x² = 4` | `x = −2, 2` |
+| `x³ − 6x² + 11x − 6 = 0` | `x = 1, 2, 3` |
 | `2t + 3q = 12` | `t = 6 − 1.5q` (solved for `t`) |
 
 - Tap the letter pill in the display header to choose the unknown. The variable key on the keypad inserts that letter.
-- The solver handles parentheses, decimals, constant division, negative coefficients and the unknown on both sides.
-- Equations with several letters return a symbolic answer for the selected letter.
+- Tap the `x^` key in the display header to insert a power, then type the whole-number exponent. Unicode forms such as `x²` and `x³` are also accepted.
+- The solver handles parentheses, nested `[ ]` / `{ }` groups, decimals, fractions, negative coefficients and the unknown on both sides.
+- Nested groups follow textbook notation automatically: the grouping key inserts `(`, then `[`, then `{` as you go deeper. Its label updates, and the close key inserts the matching `)`, `]` or `}`.
+- The unknown may appear in a denominator. Roots that would divide by zero are rejected.
+- Linear equations with several letters return a symbolic answer for the selected letter.
 - If only one letter appears, it is detected automatically, so `3y + 5 = 20` works even if the selected letter is still `x`.
-- Non-linear expressions (`x·x`, `x²`, variables in a denominator) and malformed equations show a clear error instead of a wrong answer.
+- Quadratic equations return both real roots. Equations of degree 3–12 use numeric real-root finding and show all distinct real roots; an equation with only complex roots reports `No real solution`.
+- Equations with powers and more than one letter show a clear error; use one letter when the equation is nonlinear.
 - `=` inserts the separator; press it again or use **Solve** to evaluate.
 
-The algebra parser is separate from the scientific calculator parser and works with a linear polynomial `constant + Σ(coefficient · letter)` rather than a single numeric evaluator.
+The algebra parser is separate from the scientific calculator parser. It expands integer powers into polynomials and rational quotients, then solves the resulting equation. Linear and quadratic cases are exact; higher-degree real roots are numeric and rounded to six decimals.
 
 ## Converter
 
@@ -117,7 +125,7 @@ app/src/main/java/com/qalsheet/
   ui/                      theme, typography, custom icons, dialogs, page switch
   calc/                    expression parser, calculator state and screens
   convert/                 unit data, conversion state and screen
-  algebra/                 equation editor, linear solver, letter picker
+  algebra/                 equation editor, polynomial solver, letter picker
 app/src/test/              JVM unit tests
 ```
 
