@@ -54,7 +54,7 @@ export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/27.2.12479018"
 ```
 
 The APKs install with `adb install -r`. Both are debug-signed:
-`dist/com.qalsheet.pro-2.0.0.apk` (phone) and `dist/com.qalsheet-2.0.0.apk` (watch).
+`dist/com.qalsheet.pro-2.1.0.apk` (phone) and `dist/com.qalsheet-2.1.0.apk` (watch).
 
 AppImage:
 

@@ -1990,7 +1990,7 @@ checksum = "d55d956fa96f5ec02be2e13af0e20391a5aa83d6a074e3ad368959d0fab299ea"
 
 [[package]]
 name = "qalsheet-android"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "android_logger",
  "qalsheet-ui",
@@ -1999,11 +1999,11 @@ dependencies = [
 
 [[package]]
 name = "qalsheet-core"
-version = "2.0.0"
+version = "2.1.0"
 
 [[package]]
 name = "qalsheet-desktop"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "eframe",
  "log",
@@ -2012,7 +2012,7 @@ dependencies = [
 
 [[package]]
 name = "qalsheet-ui"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "android_logger",
  "eframe",
@@ -2023,7 +2023,7 @@ dependencies = [
 
 [[package]]
 name = "qalsheet-wear"
-version = "2.0.0"
+version = "2.1.0"
 dependencies = [
  "android_logger",
  "qalsheet-ui",

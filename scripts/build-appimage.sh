@@ -4,6 +4,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' "$ROOT/Cargo.toml" | head -n1)"
 
 CARGO="${CARGO:-$HOME/.cargo/bin/cargo}"
 if [ ! -x "$CARGO" ]; then CARGO="$(command -v cargo)"; fi
@@ -51,9 +52,9 @@ cp "$ROOT/packaging/linux/AppRun" "$APPDIR/AppRun"
 chmod +x "$APPDIR/AppRun"
 
 mkdir -p "$ROOT/dist"
-OUT="$ROOT/dist/QalSheet-2.0.0-x86_64.AppImage"
+OUT="$ROOT/dist/QalSheet-$VERSION-x86_64.AppImage"
 rm -f "$OUT"
-ARCH=x86_64 VERSION=2.0.0 "$APPIMAGETOOL" --appimage-extract-and-run \
+ARCH=x86_64 VERSION="$VERSION" "$APPIMAGETOOL" --appimage-extract-and-run \
   --no-appstream "$APPDIR" "$OUT"
 chmod +x "$OUT"
 echo "==> $OUT"

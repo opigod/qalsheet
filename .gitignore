@@ -8,4 +8,4 @@ dist/*.idsig
 .env
 local.properties
 pkg/
-src/
+/src/

@@ -6,6 +6,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
+VERSION="$(sed -n 's/^version = "\(.*\)"/\1/p' "$ROOT/Cargo.toml" | head -n1)"
 
 FLAVOR="${1:-all}"
 shift || true
@@ -98,7 +99,7 @@ package_apk() {
   local compiled="$work/resources.zip"
   local unsigned="$work/unsigned.apk"
   local aligned="$work/aligned.apk"
-  local apk="$DIST/$pkg-2.0.0.apk"
+  local apk="$DIST/$pkg-$VERSION.apk"
 
   rm -rf "$work"
   mkdir -p "$work/res"

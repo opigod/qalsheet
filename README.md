@@ -63,15 +63,15 @@ and icon. A prebuilt Arch package is also in `dist/`:
 ```bash
 makepkg -si
 # or
-sudo pacman -U dist/qalsheet-2.0.0-1-x86_64.pkg.tar.zst
+sudo pacman -U dist/qalsheet-2.1.0-1-x86_64.pkg.tar.zst
 qalsheet
 ```
 
 ### AppImage (any x86_64 Linux with X11/Wayland and OpenGL)
 
 ```bash
-chmod +x dist/QalSheet-2.0.0-x86_64.AppImage
-./dist/QalSheet-2.0.0-x86_64.AppImage
+chmod +x dist/QalSheet-2.1.0-x86_64.AppImage
+./dist/QalSheet-2.1.0-x86_64.AppImage
 ```
 
 The AppImage is intentionally small: the binary relies only on system glibc, libm, libgcc and the
@@ -82,13 +82,13 @@ Checksums for every artifact are in `dist/SHA256SUMS`.
 ### Android phone
 
 ```bash
-adb install -r dist/com.qalsheet.pro-2.0.0.apk
+adb install -r dist/com.qalsheet.pro-2.1.0.apk
 ```
 
 ### Wear OS
 
 ```bash
-adb install -r dist/com.qalsheet-2.0.0.apk
+adb install -r dist/com.qalsheet-2.1.0.apk
 ```
 
 Both APKs are **debug-signed** so they can be sideloaded. They share the same native Rust code;
