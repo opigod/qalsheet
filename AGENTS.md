@@ -32,7 +32,7 @@ packaging/linux               desktop entry, icon, AppRun
 scripts/build-android.sh      cargo + NDK + aapt2 + apksigner packaging
 scripts/build-appimage.sh     AppImage packaging
 PKGBUILD                      Arch package
-dist/                         built APKs and AppImage (signed debug)
+dist/                         local build output (gitignored)
 docs/screenshots              current screenshots
 ```
 
@@ -54,7 +54,7 @@ export ANDROID_NDK_ROOT="$ANDROID_HOME/ndk/27.2.12479018"
 ```
 
 The APKs install with `adb install -r`. Both are debug-signed:
-`dist/com.qalsheet.pro-2.1.0.apk` (phone) and `dist/com.qalsheet-2.1.0.apk` (watch).
+`dist/com.qalsheet.pro-*.apk` (phone) and `dist/com.qalsheet-*.apk` (watch).
 
 AppImage:
 
@@ -157,7 +157,10 @@ speed, time, data, angle, pressure and energy.
 - [ ] Check no ANRs on cold start.
 - [ ] Update screenshots in `docs/screenshots/`.
 - [ ] Update version in `Cargo.toml` (workspace package), manifests and PKGBUILD.
-- [ ] Publish debug-signed APKs/AppImage with SHA-256 checksums.
+- [ ] Publish the release with the debug-signed APKs, AppImage and Arch package:
+      `gh release create vX.Y.Z dist/com.qalsheet-*.apk dist/QalSheet-*.AppImage dist/qalsheet-*.pkg.tar.zst dist/SHA256SUMS`
+      (`SHA256SUMS` holds bare filenames so `sha256sum -c` works beside the downloads).
+      Never commit build output: `dist/` is gitignored and the repo carries source only.
 
 ## Known limitations
 

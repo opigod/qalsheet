@@ -55,40 +55,48 @@ watch. Wear keeps the original three tabs (Calculator, Converter, Algebra) and t
 
 ## Install
 
+Prebuilt artifacts are published on the
+[releases page](https://github.com/opigod/qalsheet/releases/latest), together with a `SHA256SUMS`
+file covering them. `dist/` is local build output — the packaging scripts write there and it is not
+tracked in git.
+
 ### Arch Linux
 
 The repository contains a `PKGBUILD` that builds and installs the desktop binary, desktop entry
-and icon. A prebuilt Arch package is also in `dist/`:
+and icon. Build it yourself, or install the prebuilt package from the latest release:
 
 ```bash
 makepkg -si
-# or
-sudo pacman -U dist/qalsheet-2.1.0-1-x86_64.pkg.tar.zst
+# or, with the release asset downloaded next to the PKGBUILD
+sudo pacman -U qalsheet-2.1.0-1-x86_64.pkg.tar.zst
 qalsheet
 ```
 
 ### AppImage (any x86_64 Linux with X11/Wayland and OpenGL)
 
 ```bash
-chmod +x dist/QalSheet-2.1.0-x86_64.AppImage
-./dist/QalSheet-2.1.0-x86_64.AppImage
+curl -LO https://github.com/opigod/qalsheet/releases/latest/download/QalSheet-2.1.0-x86_64.AppImage
+chmod +x QalSheet-2.1.0-x86_64.AppImage
+./QalSheet-2.1.0-x86_64.AppImage
 ```
 
 The AppImage is intentionally small: the binary relies only on system glibc, libm, libgcc and the
 normal X11/Wayland/OpenGL stack. It does not bundle a browser engine or a JVM.
 
-Checksums for every artifact are in `dist/SHA256SUMS`.
+Verify any download against the release's `SHA256SUMS` with `sha256sum -c SHA256SUMS`.
 
 ### Android phone
 
 ```bash
-adb install -r dist/com.qalsheet.pro-2.1.0.apk
+curl -LO https://github.com/opigod/qalsheet/releases/latest/download/com.qalsheet.pro-2.1.0.apk
+adb install -r com.qalsheet.pro-2.1.0.apk
 ```
 
 ### Wear OS
 
 ```bash
-adb install -r dist/com.qalsheet-2.1.0.apk
+curl -LO https://github.com/opigod/qalsheet/releases/latest/download/com.qalsheet-2.1.0.apk
+adb install -r com.qalsheet-2.1.0.apk
 ```
 
 Both APKs are **debug-signed** so they can be sideloaded. They share the same native Rust code;
